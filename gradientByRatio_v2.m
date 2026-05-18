@@ -20,8 +20,8 @@ function [Gxa, Gya] = gradientByRatio_v2(image, alpha, gridSize)
 
 arguments
     image
-    alpha (1,1) {mustBeNumeric, mustBePositive}
-    gridSize (1,1) {mustBeInteger} = 20
+    alpha (1,1) double {mustBePositive}
+    gridSize (1,1) double {mustBeInteger} = 20
 end
 
 % Persistent cached filters
