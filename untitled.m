@@ -1,11 +1,6 @@
 %% Improved Hough transform
 % Implementing the gradient-weighted Hough transform (GWHT), with potential 
 % improvements and refinements.
-% 
-% By default, this program uses _testImage.png_. It can use an example ISAR 
-% image instead, if _useISAR_ is set to true.
-
-useISAR = false;
 %% Load image
 
 I = imread('testImage.png');
@@ -23,22 +18,11 @@ imshow(Inoise); title('Image w/ blur and noise')
 % Calculating gradients
 
 % Magnitude and direction
-
-% If using ISAR image, skip here
-if useISAR
-    load("ISARexample.mat")
-    [Gxa, Gya] = gradientByRatio_v2(image, 20);
-else
-    [Gxa, Gya] = gradientByRatio_v2(Inoise, 20);
-end
+[Gxa, Gya] = gradientByRatio_v2(Inoise, 20);
 Imagnitude = hypot(Gxa,Gya);
 Iorientation = rad2deg(atan2(Gya,Gxa));
 
-if useISAR
-    Imagnitude(Imagnitude<0.01)=NaN; % thresholding to remove background
-end
-
-figure(); tiledlayout();
+figure(); tiledlayout(1,2);
 nexttile
 imagesc(Imagnitude); colormap turbo; axis image; axis off; title('Magnitude')
 nexttile
@@ -55,8 +39,8 @@ imOtsu = imbinarize(imScaledGradient,otsuLevels(1));
 
 figure();imshowpair(imbinarize(imScaledGradient,otsuLevels(1)), ...
     imbinarize(imScaledGradient,otsuLevels(2))); title('Comparison of thresholds')
-
-%%% Would be good to reimplement my Canny hysteresis processing here
+% threshVal = log(1.5276);
+% imThreshold = Imagnitude>otsuLevel;
 
 % Region reduction
 CC = bwconncomp(imOtsu);
@@ -98,18 +82,12 @@ title('GWHT')
 % Peak relocating and clustering will happen after peaks are found.
 %% Finding peaks
 
-integerHough = round(sHough.hough.*100); %Multiplication to improve accuracy of rounding
-if useISAR
-    peakThresh = 0.05*max(integerHough(:));
-else
-    peakThresh = 0.1*max(integerHough(:));
-end
-
 rhoSpace = sHough.rho;
 numPeaks = 100;
+integerHough = round(sHough.hough.*100); %Multiplication to improve accuracy of rounding
 peaks = houghpeaks(integerHough, ...
     numPeaks, ...
-    "Threshold", ceil(peakThresh));%,...
+    "Threshold", ceil(0.1*max(integerHough(:))));%,...
     % "NHoodSize", [51,51]);
 
 %% 
@@ -157,11 +135,7 @@ hold off
 % 
 % How do we determine epsilon? Tricky. Consider using different distance measurements.
 
-if useISAR
-    eps = 100; % Initial test
-else
-    eps = 90;
-end
+eps = 50; % Initial test
 minPts = 1;
 clusterLabel = dbscan(peaks, eps, minPts);
 clustColours = hsv(length(unique(clusterLabel)));
@@ -177,7 +151,7 @@ length(unique(clusterLabel))
 figure();
 gscatter(peaks(:,2), peaks(:,1), clusterLabel)
 %% 
-% Eps should be refined for each purpose - ideally automated!
+% Initial test has actually worked perfectly.
 %% Associate clusters
 % Thanks to the expanded Hough domain, paired clusters will be 360° apart
 
@@ -216,22 +190,18 @@ end
 % Correlate the clusters
 
 % Make a graph
-if ~isempty(mergingPairs)
-    G = graph(mergingPairs(:,1), mergingPairs(:,2))
-    % Find connected components
-    componentID = conncomp(G)
-    % Initialise new label list
-    connClustLabel = zeros(size(clusterLabel));
-    % Now relabel points
-    for i=1:length(clusterLabel)
-        oldLabel = clusterLabel(i);
-        newLabel = componentID(oldLabel);
-        connClustLabel(i)=newLabel;
-    end
-else
-    disp('No pairs to merge')
-    connClustLabel = clusterLabel;
+G = graph(mergingPairs(:,1), mergingPairs(:,2))
+% Find connected components
+componentID = conncomp(G)
+% Initialise new label list
+connClustLabel = zeros(size(clusterLabel));
+% Now relabel points
+for i=1:length(clusterLabel)
+    oldLabel = clusterLabel(i);
+    newLabel = componentID(oldLabel);
+    connClustLabel(i)=newLabel;
 end
+connClustLabel
 %% Finding average peak location
 % For each cluster, there must be a "true" peak location. We can take a weighted 
 % average.
@@ -264,15 +234,9 @@ for i=1:length(unique(connClustLabel))
         end
     end
 
-    % Calculate a weighted mean - but weight STRONGLY towards better
-    % magnitude, by rescaling and squaring.
-    if height(clusterPeaks)~=1 % For clusters with only one peak, the rescaling was setting the value to 0
-        weights = (rescale(clusterPeaks(:,3))).^2;
-    else
-        weights = 1;
-    end
-    meanRho     = mean(clusterPeaks(:,1),'Weights',weights);
-    meanTheta   = mean(clusterPeaks(:,2),'Weights',weights);
+    % Calculate a weighted mean
+    meanRho     = mean(clusterPeaks(:,1),'Weights',clusterPeaks(:,3));
+    meanTheta   = mean(clusterPeaks(:,2),'Weights',clusterPeaks(:,3));
 
     meanPeaks = [meanPeaks; meanRho, meanTheta];
 end
@@ -321,13 +285,7 @@ for i=1:length(uniqueVals) %for each unique value
     tLines.label(idx) = i;
 end
 
-figure();
-if useISAR
-    imshow(image,[])
-else
-    imshow(Inoise)
-end
-hold on
+figure, imshow(Inoise), hold on
 for k = 1:height(tLines)
    xy = [tLines.point1(k,:); tLines.point2(k,:)];
    colour = colours(tLines.label(k),:);
