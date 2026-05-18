@@ -51,7 +51,7 @@ if ~any(isnan(maskedOrientation(:))) || ~any(isnan(maskedMagnitude(:)))
 end
 %% Helper variable initialisation
 
-thetaVals = -180:thetaRes:180;
+thetaVals = -210:thetaRes:210;
 [x, y] = size(maskedOrientation);
 rhoMaximum = norm([x y]);
 rhoSpace = (-rhoMaximum:1:rhoMaximum);
