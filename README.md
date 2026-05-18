@@ -1,16 +1,28 @@
 # improved-hough-transform
 Improved Hough Transform workflow, including gradient-weighted Hough transform (GWHT) function and robust edge detection methodology for SAR/ISAR imagery.
 
+## _ImprovedHoughTransform.m_
+Main script file. Live script version available as .mlx.
+
 ## Supporting files
 ### TestData directory
-Contains the data needed to run the testfile _testImprovedHoughTransform.m_
-Filetree:
+Contains the data needed to run the testfile _testImprovedHoughTransform.m_ 
+```
 TestData/
 └── Exemplary Lines/
     ├── calculatedGradients.mat
     ├── gradientByRatio_INPUT.mat
     └── originalImage.png
+```
 
+### testImage.png
+Default image to be used by _ImprovedHoughTransform.m_
+
+### _testImprovedHoughTransform.m_
+Testfile containing tests for both functions. Can be run from MATLAB console by:
+```
+runtests
+```
 
 ## Functions
 ### gradientByRatio_v2.m
@@ -23,6 +35,8 @@ The **gradient-weighted Hough transform**, an adaptation of the standard Hough t
 
 ## References
 [1] R. Fjortoft, A. Lopes, P. Marthon, and E. Cubero-Castan, ‘An optimal multiedge detector for SAR image segmentation’, IEEE Transactions on Geoscience and Remote Sensing, vol. 36, no. 3, pp. 793–802, May 1998, doi: 10.1109/36.673672.
+
 [2] F. Dellinger, J. Delon, Y. Gousseau, J. Michel, and F. Tupin, ‘SAR-SIFT: A SIFT-Like Algorithm for SAR Images’, IEEE Transactions on Geoscience and Remote Sensing, vol. 53, no. 1, pp. 453–466, Jan. 2015, doi: 10.1109/TGRS.2014.2323552.
+
 [3] M. Coe, G. Jones, L.-N. Alconcel, and M. Gashinova, ‘Persistent feature reconstruction of resident space objects (RSOs) within inverse synthetic aperture radar (ISAR) images’, Dec. 17, 2025, arXiv: arXiv:2512.15618. doi: 10.48550/arXiv.2512.15618.
 
