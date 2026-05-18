@@ -20,7 +20,6 @@ for i=1:length(requiredAddons)
     end
 end
 
-
 %% Testing gradientByRatio_v2
 % Check that applying gradientByRatio_v2 to gradientByRatio_INPUT yields
 % magnitude and orientation images as expected
