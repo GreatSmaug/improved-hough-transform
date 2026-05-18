@@ -137,7 +137,7 @@ hold off
 
 eps = 50; % Initial test
 minPts = 1;
-clusterLabel = dbscan(peaks, eps, minPts);
+clusterLabel = dbscan(peaks, eps, minPts,"Distance","mahalanobis");
 clustColours = hsv(length(unique(clusterLabel)));
 colourlist = zeros([height(peaks) 3]);
 for i=1:length(colourlist)
