@@ -133,11 +133,11 @@ hold off
 % 
 % Set minpts = 1, because a single detection is also valid.
 % 
-% How do we determine epsilon? Tricky. But we can use the mahalanobis distance!
+% How do we determine epsilon? Tricky. Consider using different distance measurements.
 
 eps = 50; % Initial test
 minPts = 1;
-clusterLabel = dbscan(peaks, eps, minPts,"Distance","mahalanobis");
+clusterLabel = dbscan(peaks, eps, minPts);
 clustColours = hsv(length(unique(clusterLabel)));
 colourlist = zeros([height(peaks) 3]);
 for i=1:length(colourlist)
