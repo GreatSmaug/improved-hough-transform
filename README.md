@@ -4,6 +4,9 @@ Improved Hough Transform workflow, including gradient-weighted Hough transform (
 ## _ImprovedHoughTransform.m_
 Main script file. Live script version available as .mlx.
 
+## _StandardHoughTransform.m_
+Implementation of the standard Hough transform, included as a contrast to the improved methodology.
+
 ## Supporting files
 ### TestData directory
 Contains the data needed to run the testfile _testImprovedHoughTransform.m_ 
@@ -17,6 +20,9 @@ TestData/
 
 ### testImage.png
 Default image to be used by _ImprovedHoughTransform.m_
+
+### ISARexample.mat
+Example simulated ISAR image, which can be used in _ImprovedHoughTransform.m_ or _StandardHoughTransform.m_ by setting _useISAR=true_.
 
 ### _testImprovedHoughTransform.m_
 Testfile containing tests for both functions. Can be run from MATLAB console by:
