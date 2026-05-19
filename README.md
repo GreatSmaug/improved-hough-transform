@@ -25,10 +25,11 @@ Default image to be used by _ImprovedHoughTransform.m_
 Example simulated ISAR image, which can be used in _ImprovedHoughTransform.m_ or _StandardHoughTransform.m_ by setting _useISAR=true_.
 
 ### _testImprovedHoughTransform.m_
-Testfile containing tests for both functions. Can be run from MATLAB console by:
+Testfile containing tests for gradientByRatio_v2 function. Can be run from MATLAB console by:
 ```
 runtests
 ```
+Tests for GWHT will be added in a future update.
 
 ## Functions
 ### gradientByRatio_v2.m
