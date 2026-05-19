@@ -18,7 +18,9 @@ imshow(I); title('Original image')
 
 rng(123579); % Set fixed seed
 Igauss = imgaussfilt(I,sqrt(2), 'FilterSize',5);
+% Add default noise
 Inoise = imnoise(Igauss);
+% Ispeckle = imnoise(Igauss,'speckle');
 imshow(Inoise); title('Image w/ blur and noise')
 % Calculating gradients
 
@@ -46,7 +48,7 @@ imagesc(Iorientation); colormap turbo; axis image; axis off; title('Orientation'
 %% Thresholding
 
 % Thresholding
-imScaledGradient = rescale(Imagnitude);
+imScaledGradient = rescale(Imagnitude); % Note that rescale doesn't work if the input array contains NaNs
 % otsuLevel = graythresh(imScaledGradient);
 otsuLevels = multithresh(imScaledGradient,2)
 imOtsu = imbinarize(imScaledGradient,otsuLevels(1));
