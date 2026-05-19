@@ -18,9 +18,9 @@ function sHoughGW = GWHT(maskedOrientation, maskedMagnitude, thetaRes, sigma)
 %                           (default: 20)
 %
 %   Output:
-%       sHoughAngular — Struct containing:
-%           .hough    — Angular Hough accumulator
-%           .theta    — Theta axis values (deg)
+%       sHoughGW — Struct containing:
+%           .hough    — Gradient-weighted Hough accumulator
+%           .theta    — Theta axis values (degrees)
 %           .rho      — Rho axis values (pixels)
 
 arguments
@@ -49,6 +49,7 @@ if ~any(isnan(maskedOrientation(:))) || ~any(isnan(maskedMagnitude(:)))
         return;
     end
 end
+
 %% Helper variable initialisation
 
 thetaVals = -210:thetaRes:210; % Inherently expand theta domain
@@ -63,8 +64,9 @@ num_rhos = numel(rhoSpace);
 % Accumulator array
 houghSpace = zeros(num_rhos, num_thetas);
 
-% Define gaussian function
-gaussFunc = circshift(normpdf(thetaVals,90,sigma),-90/thetaRes); % Sigma should be tuned
+% Define gaussian function, with variable sigma
+gaussFunc = circshift(normpdf(thetaVals,90,sigma),-90/thetaRes);
+
 %% Gradient weighted Hough transform calculation
 
 for xi = 1:x
@@ -75,7 +77,8 @@ for xi = 1:x
 
             pixelMagnitude = maskedMagnitude(xi,yj);
 
-            pixelGauss = circshift(gaussFunc,round(pixelOrientation/thetaRes)); % Shift the gauss function to be over the orientation of the pixel
+            % Shift the gauss function to be centered on the orientation of the pixel
+            pixelGauss = circshift(gaussFunc,round(pixelOrientation/thetaRes)); 
             for thetaIdx = 1:num_thetas
                 % For each theta, calculate rho at that (x,y) position
                 theta = thetaVals(thetaIdx);
