@@ -338,5 +338,3 @@ end
 title('Line detection overlay');
 
 hold off
-%% 
-% %% Comparison to
