@@ -63,7 +63,7 @@ figure();imshowpair(imbinarize(imScaledGradient,otsuLevels(1)), ...
 %% 
 % IMPLEMENTING CANNY HYSTERESIS HERE
 % 
-% BLAHBLAHBLAH
+% BLAHBLAHBLAH BLAH
 
 
 % Region reduction
