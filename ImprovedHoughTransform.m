@@ -51,7 +51,7 @@ imagesc(Iorientation); colormap turbo; axis image; axis off; title('Orientation'
 % Thresholding
 imScaledGradient = rescale(Imagnitude); % Note that rescale doesn't work if the input array contains NaNs
 % otsuLevel = graythresh(imScaledGradient);
-otsuLevels = multithresh(imScaledGradient,2)
+otsuLevels = multithresh(imScaledGradient,2);
 imOtsu = imbinarize(imScaledGradient,otsuLevels(1));
 %% 
 % Compare otsu levels
