@@ -2,7 +2,9 @@
 
 %% Load data
 % Toggle useISAR to use ISAR image instead
-useISAR = false;
+useISAR = true;
+
+if ~useISAR
 % Load image
 I = imread('testImage.png');
 I = im2gray(I);
@@ -18,11 +20,17 @@ Igauss = imgaussfilt(I,sqrt(2), 'FilterSize',5);
 Inoise = imnoise(Igauss);
 % Ispeckle = imnoise(Igauss,'speckle');
 imshow(Inoise); title('Image w/ blur and noise')
-
+I = Inoise;
+else
+    ISAR = load('ISARexample.mat').image;
+    I = double(rescale(ISAR));
+    I = imgaussfilt(I,sqrt(2));
+    imshow(I)
+end
 %% Hough processing
 % Note that the standard Hough implementation doesn't use gradient-by-ratio
 % calculation. Instead we use the inbuilt edge function
-BW = edge(Inoise,"canny");
+BW = edge(I,"canny");
 imshow(BW); title('Edge image')
 % Match Hough parameters as closely as possible
 [H,T,R] = hough(BW,Theta=-90:0.2:89.8);
@@ -51,7 +59,7 @@ hold off
 lines = houghlines(BW,T,R,peaks,"FillGap",5,"MinLength",7);
 
 %% Plot lines
-imshow(Inoise)
+imshow(I)
 hold on
 for k = 1:length(lines)
    xy = [lines(k).point1; lines(k).point2];

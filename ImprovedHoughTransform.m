@@ -20,7 +20,8 @@ rng(123579); % Set fixed seed
 Igauss = imgaussfilt(I,sqrt(2), 'FilterSize',5);
 % Add default noise
 Inoise = imnoise(Igauss);
-% Ispeckle = imnoise(Igauss,'speckle');
+Ispeckle = imnoise(Igauss,'speckle');
+figure()
 imshow(Inoise); title('Image w/ blur and noise')
 % Calculating gradients
 
@@ -50,7 +51,7 @@ imagesc(Iorientation); colormap turbo; axis image; axis off; title('Orientation'
 % Thresholding
 imScaledGradient = rescale(Imagnitude); % Note that rescale doesn't work if the input array contains NaNs
 % otsuLevel = graythresh(imScaledGradient);
-otsuLevels = multithresh(imScaledGradient,2)
+otsuLevels = multithresh(imScaledGradient,2);
 imOtsu = imbinarize(imScaledGradient,otsuLevels(1));
 %% 
 % Compare otsu levels
@@ -59,6 +60,11 @@ figure();imshowpair(imbinarize(imScaledGradient,otsuLevels(1)), ...
     imbinarize(imScaledGradient,otsuLevels(2))); title('Comparison of thresholds')
 
 %%% Would be good to reimplement my Canny hysteresis processing here
+%% 
+% IMPLEMENTING CANNY HYSTERESIS HERE
+% 
+% BLAHBLAHBLAH BLAH
+
 
 % Region reduction
 CC = bwconncomp(imOtsu);

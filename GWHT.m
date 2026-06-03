@@ -52,7 +52,7 @@ end
 
 %% Helper variable initialisation
 
-thetaVals = -210:thetaRes:210; % Inherently expand theta domain
+thetaVals = -210:thetaRes:210; % Inherently expand theta domain (-210:210)
 [x, y] = size(maskedOrientation);
 rhoMaximum = norm([x y]);
 rhoSpace = (-rhoMaximum:1:rhoMaximum);
@@ -65,7 +65,22 @@ num_rhos = numel(rhoSpace);
 houghSpace = zeros(num_rhos, num_thetas);
 
 % Define gaussian function, with variable sigma
-gaussFunc = circshift(normpdf(thetaVals,90,sigma),-90/thetaRes);
+% gaussFunc = circshift(normpdf(thetaRes,90,sigma),-90/thetaRes); % CHANGED
+gaussRange = -360:thetaRes:360;
+gaussFunc = normpdf(gaussRange,0,sigma);
+periodicGaussFunc = gaussFunc + ...
+    circshift(gaussFunc,360/thetaRes);
+plot(gaussRange,periodicGaussFunc)
+
+%%% This should be circshifted and then add a value to the index
+%%% corresponding to the difference between the start of this and the start
+%%% of the theta range
+gaussThetaDiff = (min(thetaVals) - min(gaussRange))/thetaRes;
+
+% Precompute sines and cosines
+cosTheta = cosd(thetaVals);
+sinTheta = sind(thetaVals);
+
 
 %% Gradient weighted Hough transform calculation
 
@@ -78,19 +93,20 @@ for xi = 1:x
             pixelMagnitude = maskedMagnitude(xi,yj);
 
             % Shift the gauss function to be centered on the orientation of the pixel
-            pixelGauss = circshift(gaussFunc,round(pixelOrientation/thetaRes)); 
+            pixelGauss = circshift(periodicGaussFunc,round(pixelOrientation/thetaRes));
+
             for thetaIdx = 1:num_thetas
                 % For each theta, calculate rho at that (x,y) position
-                theta = thetaVals(thetaIdx);
+                % theta = thetaVals(thetaIdx); % No longer needed
 
                 % Parametric representation of a line
-                rho = yj * cosd(theta) + xi * sind(theta);
+                rho = yj * cosTheta(thetaIdx) + xi * sinTheta(thetaIdx);
                 
                 % Find corresponding index in rhoSpace
                 rhoIdx = round(rho + rhoMaximum + 1);
-                
+
                 % Calculate vote strength and add to accumulator
-                pixelVote = pixelGauss(thetaIdx)*pixelMagnitude;
+                pixelVote = pixelGauss(thetaIdx+gaussThetaDiff)*pixelMagnitude;
                 houghSpace(rhoIdx, thetaIdx) = ...
                     houghSpace(rhoIdx, thetaIdx) + pixelVote;
             end
