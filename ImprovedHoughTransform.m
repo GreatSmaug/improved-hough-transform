@@ -13,6 +13,10 @@ I = im2gray(I);
 I = double(rescale(I));
 figure()
 imshow(I); title('Original image')
+%% 
+% 
+% 
+% Scaling command: f=gcf; f.Position = [281.8000 252.2000 424.8000 416];
 %% Image preparation
 % Add some blur and noise
 
@@ -21,7 +25,7 @@ Igauss = imgaussfilt(I,sqrt(2), 'FilterSize',5);
 % Add default noise
 Inoise = imnoise(Igauss);
 Ispeckle = imnoise(Igauss,'speckle');
-figure()
+fNoise = figure('Position',[281.8000 252.2000 424.8000 416]);
 imshow(Inoise); title('Image w/ blur and noise')
 % Calculating gradients
 
@@ -51,23 +55,31 @@ imagesc(Iorientation); colormap turbo; axis image; axis off; title('Orientation'
 % Thresholding
 imScaledGradient = rescale(Imagnitude); % Note that rescale doesn't work if the input array contains NaNs
 % otsuLevel = graythresh(imScaledGradient);
-otsuLevels = multithresh(imScaledGradient,2);
-imOtsu = imbinarize(imScaledGradient,otsuLevels(1));
+imThresh = multithresh(imScaledGradient,2)
+imOtsu = imbinarize(imScaledGradient,imThresh(1));
 %% 
 % Compare otsu levels
 
-figure();imshowpair(imbinarize(imScaledGradient,otsuLevels(1)), ...
-    imbinarize(imScaledGradient,otsuLevels(2))); title('Comparison of thresholds')
+figure();imshowpair(imbinarize(imScaledGradient,imThresh(1)), ...
+    imbinarize(imScaledGradient,imThresh(2))); title('Comparison of thresholds')
+%% Canny hysteresis
 
-%%% Would be good to reimplement my Canny hysteresis processing here
+strongEdge = imScaledGradient>imThresh(2);
+weakEdge = imScaledGradient>imThresh(1);
+[rstrong, cstrong] = find(strongEdge); % Row and column of strong pixels
+hysteresisMask = bwselect(weakEdge, cstrong, rstrong, 8);
+cannyMaskedImage = immultiply(imScaledGradient,hysteresisMask);
+figure();
+h1 = imagesc(cannyMaskedImage); colormap turbo; axis image; axis off; 
+title('Edges after hysteresis')
+set(h1, 'AlphaData', ~isnan(cannyMaskedImage))
+c=colorbar;c.Label.String = 'Gradient magnitude';
+
 %% 
-% IMPLEMENTING CANNY HYSTERESIS HERE
 % 
-% BLAHBLAHBLAH BLAH
-
 
 % Region reduction
-CC = bwconncomp(imOtsu);
+CC = bwconncomp(cannyMaskedImage);
 regionSizes = cellfun(@length,CC.PixelIdxList);
 largeEnoughIdx = find(regionSizes>100);
 p = regionprops(CC,"Area");
@@ -75,22 +87,27 @@ p = regionprops(CC,"Area");
 BW2 = cc2bw(CC,"ObjectsToKeep",maxIdx);
 
 % Masks
-mask = imOtsu;
+mask = BW2;
 maskedOrientation   = immultiply(Iorientation,mask); % Take only the data from the thresholded image
 maskedMagnitude     = immultiply(Imagnitude,mask);
 maskedOrientation(maskedOrientation==0) =NaN;
 maskedMagnitude(maskedMagnitude==0)     =NaN;
 
-figure(); tiledlayout(1,2); title('Masked')
+figure(); tiledlayout("TileSpacing","tight", "Padding","tight");
 nexttile
 h1 = imagesc(maskedMagnitude); colormap turbo; axis image; axis off; title('Magnitude')
 set(h1, 'AlphaData', ~isnan(maskedMagnitude))
+c1=colorbar;
 nexttile
 h2 = imagesc(maskedOrientation); colormap turbo; axis image; axis off; title('Orientation')
-set(h2, 'AlphaData', ~isnan(maskedOrientation))
+set(h2, 'AlphaData', ~isnan(maskedOrientation));
+c2=colorbar;
+c2.Label.String = 'Degrees';
 %% Hough transform
 
+tic
 sHough = GWHT(maskedOrientation,maskedMagnitude);
+toc
 %% 
 % 
 
@@ -99,6 +116,14 @@ imagesc(sHough.hough, 'XData',sHough.theta, 'YData',sHough.rho);
 colormap hsv; colorbar
 xlabel('\theta'); ylabel('\rho'); 
 title('GWHT')
+%%
+figure('Position',[294.6000 338 753.4000 420]);
+imagesc(sHough.hough, 'XData',sHough.theta, 'YData',sHough.rho);
+colormap turbo; colorbar
+xlabel('\theta'); ylabel('\rho'); 
+title('GWHT')
+xline(-180,'g-')
+xline(+180,'g-')
 %% Extend Hough space
 % Hough space is now inherently extended to [-210,210] degrees within <./GWHT.m 
 % GWHT.m>.
