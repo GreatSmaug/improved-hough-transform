@@ -5,7 +5,7 @@
 % By default, this program uses _testImage.png_. It can use an example ISAR 
 % image instead, if _useISAR_ is set to true.
 
-useISAR = false;
+useISAR = true;
 %% Load image
 
 I = imread('testImage.png');
@@ -78,16 +78,18 @@ c=colorbar;c.Label.String = 'Gradient magnitude';
 %% 
 % 
 
-% Region reduction
-CC = bwconncomp(cannyMaskedImage);
-regionSizes = cellfun(@length,CC.PixelIdxList);
-largeEnoughIdx = find(regionSizes>100);
-p = regionprops(CC,"Area");
-[~,maxIdx] = maxk([p.Area],2);
-BW2 = cc2bw(CC,"ObjectsToKeep",maxIdx);
+% % Region reduction
+% CC = bwconncomp(hysteresisMask);
+% regionSizes = cellfun(@length,CC.PixelIdxList);
+% largeEnoughIdx = find(regionSizes>100);
+% p = regionprops(CC,"Area");
+% [~,maxIdx] = maxk([p.Area],2);
+% BW2 = cc2bw(CC,"ObjectsToKeep",maxIdx);
+%% 
+% Region reduction no longer needed after hysteresis
 
 % Masks
-mask = BW2;
+mask = hysteresisMask;
 maskedOrientation   = immultiply(Iorientation,mask); % Take only the data from the thresholded image
 maskedMagnitude     = immultiply(Imagnitude,mask);
 maskedOrientation(maskedOrientation==0) =NaN;
@@ -119,11 +121,13 @@ title('GWHT')
 %%
 figure('Position',[294.6000 338 753.4000 420]);
 imagesc(sHough.hough, 'XData',sHough.theta, 'YData',sHough.rho);
-colormap turbo; colorbar
+colormap turbo;
 xlabel('\theta'); ylabel('\rho'); 
 title('GWHT')
-xline(-180,'g-')
-xline(+180,'g-')
+xline(-180,'g--')
+xline(+180,'g--')
+c=colorbar;
+c.Label.String = 'Accumulator value';
 %% Extend Hough space
 % Hough space is now inherently extended to [-210,210] degrees within <./GWHT.m 
 % GWHT.m>.
@@ -132,19 +136,21 @@ xline(+180,'g-')
 %% Finding peaks
 
 integerHough = round(sHough.hough.*100); %Multiplication to improve accuracy of rounding
-if useISAR
-    peakThresh = 0.05*max(integerHough(:));
-else
-    peakThresh = 0.1*max(integerHough(:));
-end
-
 rhoSpace = sHough.rho;
 numPeaks = 100;
-peaks = houghpeaks(integerHough, ...
-    numPeaks, ...
-    "Threshold", ceil(peakThresh));%,...
-    % "NHoodSize", [51,51]);
 
+if useISAR
+    peakThresh = 0.05*max(integerHough(:));
+    peaks = houghpeaks(integerHough, ...
+    numPeaks, ...
+    "Threshold", ceil(peakThresh),...
+    "NHoodSize", [501,51]);
+else
+    peakThresh = 0.1*max(integerHough(:));
+    peaks = houghpeaks(integerHough, ...
+    numPeaks, ...
+    "Threshold", ceil(peakThresh))
+end
 %% 
 % So a suppression neighbourhood isn't necessarily the best thing, since it 
 % means that "peaks" on the edges of the cut out zone will be considered (when 
@@ -166,9 +172,11 @@ peaks = sortrows(peaks,2)
 % _*peaks_ is [rho, theta, magnitude]*
 %% Plotting peaks
 
-figure();
+figure('Position',[294.6000 338 753.4000 420]);
 imagesc(sHough.hough, 'XData',sHough.theta, 'YData',sHough.rho);
-colormap hsv; colorbar
+colormap turbo;
+c=colorbar;
+c.Label.String = 'Accumulator value';
 xlabel('\theta'); ylabel('\rho'); 
 title('GWHT (w/ peaks)')
 x = sHough.theta(peaks(:,2)); y = sHough.rho(peaks(:,1));
@@ -190,13 +198,17 @@ hold off
 % 
 % How do we determine epsilon? Tricky. Consider using different distance measurements.
 
+minPts = 1;
+
 if useISAR
-    eps = 100; % Initial test
+    % Need to do normalisation, or you'd think mahalanobis would account
+    % for this
+    eps = 0.1; % Initial test
+    clusterLabel = dbscan(peaks(:,1:2), eps, minPts, 'Distance','mahalanobis');
 else
     eps = 90;
+    clusterLabel = dbscan(peaks, eps, minPts);
 end
-minPts = 1;
-clusterLabel = dbscan(peaks, eps, minPts);
 clustColours = hsv(length(unique(clusterLabel)));
 colourlist = zeros([height(peaks) 3]);
 for i=1:length(colourlist)
@@ -207,8 +219,15 @@ for i=1:length(colourlist)
     end
 end
 length(unique(clusterLabel))
-figure();
-gscatter(peaks(:,2), peaks(:,1), clusterLabel)
+figure('Position',[294.6000 338 753.4000 420]);
+gscatter(sHough.theta(peaks(:,2)), sHough.rho(peaks(:,1)), clusterLabel)
+axis ij
+ylim([min(sHough.rho), max(sHough.rho)])
+xlim([-210 210])
+xlabel('\theta'); ylabel('\rho'); 
+title('Clustered peaks')
+c=colorbar;
+c.Label.String = 'Clusters';
 %% 
 % Eps should be refined for each purpose - ideally automated!
 %% Associate clusters
@@ -229,7 +248,7 @@ stopIdx = (60/thetaRes)+1; % The index at which to stop checking
 
 % Initialise merging pairs list
 mergingPairs = [];
-for i=2%1:height(sortedpeaks)
+for i=1:height(peaks)
     if peaks(i,2)<stopIdx
         corrTheta = round(peaks(i,2) + indexDiff); % This has to be an integer
         corrPoint = [peaks(i,1), corrTheta];
@@ -238,7 +257,7 @@ for i=2%1:height(sortedpeaks)
         idx = find(ismember(peaks(:,1:2), corrPoint, "rows"));
         if ~isempty(idx)
             % Correlate these points
-            mergingPairs = [mergingPairs; clusterLabel(i), clusterLabel(idx)]
+            mergingPairs = [mergingPairs; clusterLabel(i), clusterLabel(idx)];
         end
 
     else
@@ -312,11 +331,13 @@ end
 %% 
 % Let's plot these peaks and see how well they work on this data.
 
-figure();
+figure('Position',[294.6000 338 753.4000 420]);
 imagesc(sHough.hough, 'XData',sHough.theta, 'YData',sHough.rho);
-colormap hsv; colorbar
+colormap turbo;
+c=colorbar;
+c.Label.String = 'Accumulator value';
 xlabel('\theta'); ylabel('\rho'); 
-title('GWHT (w/ peaks)')
+title('GWHT (w/ single peaks)')
 
 x = min(sHough.theta) + meanPeaks(:,2)*thetaRes;
 y = min(sHough.rho) + meanPeaks(:,1)*rhoRes;
@@ -324,13 +345,16 @@ y = min(sHough.rho) + meanPeaks(:,1)*rhoRes;
 hold on
 plot(x,y,'s','color','white');
 hold off
-xline(-180)
+xline(-150, 'g--')
 %% Reconstruct lines
 
+if useISAR
+    meanPeaks = peaks(:,1:2);
+end
 for j=1:length(meanPeaks)
     pk = round(meanPeaks(j,:));
     % Find a new mask for that peak. Within a range of the peak angle
-    pkAngle = sHough.theta(pk(2));
+    pkAngle = wrapTo180(sHough.theta(pk(2))); % Need to wrap this back into -180:180 range
     pkMask = zeros(size(mask));
     pkMask(maskedOrientation>(pkAngle-10) & maskedOrientation<(pkAngle+10)) = 1;
     pkLine = houghlines(pkMask, sHough.theta,rhoSpace,pk,...
@@ -346,7 +370,53 @@ end
 tLines = struct2table(sLines);
 thetaRhoVals = [sLines.theta;sLines.rho]';
 uniqueVals = unique(thetaRhoVals,"rows");
-colours = prism(length(uniqueVals));
+colours = hsv(length(uniqueVals));
+
+for i=1:length(uniqueVals) %for each unique value
+    idx = and(any(thetaRhoVals == uniqueVals(i,1),2), ...
+        any(thetaRhoVals == uniqueVals(i,2),2)); % Matching rows
+    tLines.label(idx) = i;
+end
+
+figure('Position',[295.4000 464.2000 754.4000 250.4000]);
+if useISAR
+    imshow(image,[])
+else
+    imshow(Inoise)
+end
+hold on
+%% 
+% Want it to be colour-coded to the cluster
+
+for k = 1:height(tLines)
+   xy = [tLines.point1(k,:); tLines.point2(k,:)];
+   colour = colours(tLines.label(k),:);
+   plot(xy(:,1),xy(:,2),'LineWidth',2,'Color',colour);
+end
+title('Line detection overlay');
+
+hold off
+%% Infinite lines
+% Plot the infinite lines on the binary significance map.
+
+whiteBackground = ones(size(mask));
+for j=1:length(meanPeaks)
+    pk = round(meanPeaks(j,:));
+    % Find a new mask for that peak. Within a range of the peak angle
+    pkAngle = wrapTo180(sHough.theta(pk(2))); % Need to wrap this back into -180:180 range
+    pkLine = houghlines(whiteBackground, sHough.theta,rhoSpace,pk,...
+        "FillGap",50, "MinLength", 100);
+
+    if j==1 % For the first one, initialise the new big struct
+        sLines = pkLine;
+    else
+        sLines = [sLines, pkLine];
+    end
+end
+tLines = struct2table(sLines);
+thetaRhoVals = [sLines.theta;sLines.rho]';
+uniqueVals = unique(thetaRhoVals,"rows");
+colours = hsv(length(uniqueVals));
 
 for i=1:length(uniqueVals) %for each unique value
     idx = and(any(thetaRhoVals == uniqueVals(i,1),2), ...
@@ -355,12 +425,11 @@ for i=1:length(uniqueVals) %for each unique value
 end
 
 figure();
-if useISAR
-    imshow(image,[])
-else
-    imshow(Inoise)
-end
+imshow(mask)
 hold on
+%% 
+% Want it to be colour-coded to the cluster
+
 for k = 1:height(tLines)
    xy = [tLines.point1(k,:); tLines.point2(k,:)];
    colour = colours(tLines.label(k),:);
